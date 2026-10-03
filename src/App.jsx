@@ -1098,6 +1098,29 @@ function ServicePage() {
   const navigate = useNavigate();
   const service = serviceCards.find((s) => s.slug === slug);
 
+  const [tilePage, setTilePage] = useState(0);
+  useEffect(() => {
+    setTilePage(0);
+  }, [slug]);
+
+  /* clicked tile (popup) */
+  const [selected, setSelected] = useState(null);
+  useEffect(() => {
+    setSelected(null);
+  }, [slug]);
+  useEffect(() => {
+    if (!selected) return;
+    document.body.style.overflow = "hidden";
+    const onKey = (e) => {
+      if (e.key === "Escape") setSelected(null);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = "";
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [selected]);
+
   if (!service) {
     return (
       <div className="min-h-screen bg-b-cream text-b-text font-inter">
@@ -1129,10 +1152,36 @@ function ServicePage() {
      ================================================================= */
   const bigCover = decorationHero || (priced[0] || allItems[0])?.url || "";
 
-  const tileItems = (priced.length > 0 ? priced : allItems).slice(0, 6);
-  while (tileItems.length > 0 && tileItems.length < 6) {
-    tileItems.push(tileItems[tileItems.length % tileItems.length]);
+  const sourceItems = priced.length > 0 ? priced : allItems;
+  const TILES_PER_PAGE = 8;
+  const totalPages = Math.max(
+    1,
+    Math.ceil(sourceItems.length / TILES_PER_PAGE),
+  );
+
+  const safePage = Math.min(tilePage, totalPages - 1);
+  const tileStart = safePage * TILES_PER_PAGE;
+  const tileItems = sourceItems.slice(tileStart, tileStart + TILES_PER_PAGE);
+
+  /* last page: fill leftover slots with images from the start
+     so the grid never shows empty space */
+  for (
+    let k = 0;
+    tileItems.length > 0 && tileItems.length < TILES_PER_PAGE;
+    k++
+  ) {
+    tileItems.push(sourceItems[k % sourceItems.length]);
   }
+
+  /* position of the opened image in the full list (-1 for the big hero tile) */
+  const selIndex = selected ? sourceItems.indexOf(selected) : -1;
+  const stepSelected = (d) =>
+    setSelected(
+      sourceItems[(selIndex + d + sourceItems.length) % sourceItems.length],
+    );
+
+  const goPrev = () => setTilePage((p) => Math.max(0, p - 1));
+  const goNext = () => setTilePage((p) => Math.min(totalPages - 1, p + 1));
 
   const related = serviceCards.filter((s) => s.slug !== slug).slice(0, 4);
 
@@ -1355,7 +1404,12 @@ function ServicePage() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-[14px] auto-rows-[154px]">
-          <div className="relative col-span-2 row-span-2 rounded-[12px] overflow-hidden shadow-[0_8px_20px_rgba(11,35,31,.15)]">
+          <div
+            onClick={() =>
+              setSelected({ url: bigCover, price: priced[0]?.price ?? null })
+            }
+            className="relative col-span-2 row-span-2 rounded-[12px] overflow-hidden shadow-[0_8px_20px_rgba(11,35,31,.15)] cursor-pointer"
+          >
             {bigCover && (
               <img
                 src={bigCover}
@@ -1383,10 +1437,11 @@ function ServicePage() {
             </span>
           </div>
 
-          {tileItems.slice(0, 6).map((item, i) => (
+          {tileItems.slice(0, TILES_PER_PAGE).map((item, i) => (
             <div
               key={i}
-              className="relative rounded-[12px] overflow-hidden shadow-[0_8px_20px_rgba(11,35,31,.15)]"
+              onClick={() => setSelected(item)}
+              className="relative rounded-[12px] overflow-hidden shadow-[0_8px_20px_rgba(11,35,31,.15)] cursor-pointer"
             >
               <img
                 src={item.url}
@@ -1412,13 +1467,28 @@ function ServicePage() {
           ))}
         </div>
 
-        <div className="flex justify-end gap-[10px] mt-[26px]">
-          <span className="w-8 h-8 rounded-full bg-white shadow-[0_2px_8px_rgba(0,0,0,.08)] grid place-items-center text-sp-text">
-            ←
+        <div className="flex justify-between items-center gap-[10px] mt-[26px]">
+          <span className="text-[11px] text-sp-muted">
+            Page {safePage + 1} of {totalPages} · {sourceItems.length} images
           </span>
-          <span className="w-8 h-8 rounded-full bg-white shadow-[0_2px_8px_rgba(0,0,0,.08)] grid place-items-center text-sp-text">
-            →
-          </span>
+          <div className="flex gap-[10px]">
+            <button
+              onClick={goPrev}
+              disabled={safePage === 0}
+              aria-label="Previous images"
+              className="w-8 h-8 rounded-full bg-white shadow-[0_2px_8px_rgba(0,0,0,.08)] grid place-items-center text-sp-text cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              ←
+            </button>
+            <button
+              onClick={goNext}
+              disabled={safePage >= totalPages - 1}
+              aria-label="Next images"
+              className="w-8 h-8 rounded-full bg-white shadow-[0_2px_8px_rgba(0,0,0,.08)] grid place-items-center text-sp-text cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              →
+            </button>
+          </div>
         </div>
       </section>
 
@@ -1486,6 +1556,112 @@ function ServicePage() {
       </section>
 
       <Footer />
+
+      {/* ============ IMAGE POPUP ============ */}
+      {selected && (
+        <div
+          className="fixed inset-0 z-[60] bg-[rgba(10,24,20,.6)] flex items-center justify-center p-5"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setSelected(null);
+          }}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            style={{ backgroundColor: "#fbf7f3" }}
+            className="w-full max-w-[860px] max-h-[92vh] overflow-auto rounded-[18px] grid grid-cols-1 md:grid-cols-[1.25fr_1fr] shadow-[0_12px_40px_rgba(0,0,0,.25)]"
+          >
+            {/* image side */}
+            <div className="relative h-[300px] md:h-auto md:min-h-[460px] bg-[#cfc8bd]">
+              <img
+                src={selected.url}
+                alt={service.title}
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+              <span className="absolute left-3 top-3 z-[2] bg-sp-gdark/85 text-white text-[10px] px-3 py-[5px] rounded-full">
+                {service.title}
+              </span>
+              <button
+                onClick={() => setSelected(null)}
+                aria-label="Close"
+                className="absolute z-[3] right-3 top-3 w-8 h-8 rounded-full bg-[#1b1b1b] text-white grid place-items-center cursor-pointer"
+              >
+                <Icon.X className="w-4 h-4" />
+              </button>
+              {selIndex >= 0 && sourceItems.length > 1 && (
+                <>
+                  <button
+                    onClick={() => stepSelected(-1)}
+                    aria-label="Previous image"
+                    className="absolute z-[3] left-3 top-1/2 -mt-4 w-8 h-8 rounded-full bg-[rgba(15,35,30,.75)] text-white grid place-items-center cursor-pointer"
+                  >
+                    <Icon.ChevLeft className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => stepSelected(1)}
+                    aria-label="Next image"
+                    className="absolute z-[3] right-3 top-1/2 -mt-4 w-8 h-8 rounded-full bg-[rgba(15,35,30,.75)] text-white grid place-items-center cursor-pointer"
+                  >
+                    <Icon.ChevRight className="w-4 h-4" />
+                  </button>
+                </>
+              )}
+            </div>
+
+            {/* details side */}
+            <div
+              className="p-6 flex flex-col"
+              style={{ backgroundColor: "#fbf7f3", color: "#1c2b27" }}
+            >
+              <div
+                className="text-[10px] tracking-[.14em] uppercase"
+                style={{ color: "#8a7f73" }}
+              >
+                {service.title}
+              </div>
+              <h3 className="font-baskerville font-normal text-[22px] leading-[1.25] mt-1 mb-3">
+                {service.title} Decor
+              </h3>
+              {selected.price != null && (
+                <div
+                  className="text-[24px] font-semibold mb-3"
+                  style={{ color: "#2f5d50" }}
+                >
+                  {formatPrice(selected.price)}
+                </div>
+              )}
+              <p
+                className="text-[12px] leading-[1.8] mb-4"
+                style={{ color: "#5d6764" }}
+              >
+                {service.longDesc}
+              </p>
+              <div className="text-[11px] font-semibold mb-2">Includes</div>
+              <ul
+                className="text-[11.5px] leading-[1.9] mb-5"
+                style={{ color: "#5d6764" }}
+              >
+                {service.highlights.map((h) => (
+                  <li key={h}>✓ {h}</li>
+                ))}
+              </ul>
+              {selIndex >= 0 && (
+                <div className="text-[10px] mb-4" style={{ color: "#5d6764" }}>
+                  Image {selIndex + 1} of {sourceItems.length}
+                </div>
+              )}
+              <Link
+                to="/#contact"
+                onClick={() => setSelected(null)}
+                style={{ backgroundColor: "#0b231f", color: "#ffffff" }}
+                className="mt-auto inline-flex items-center justify-center gap-2 px-[22px] py-3 rounded-full text-[12px] font-semibold"
+              >
+                Get a Free Quote →
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
 
       <button
         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
