@@ -316,7 +316,7 @@ const GALLERY_ITEMS = (() => {
     "Festival",
   ];
   const catMap = {
-    Wedding: "Wedding Decor",
+    Wedding: "Wedding Decoration",
     Engagement: "Engagement",
     Birthday: "Birthday Party",
     Baby_shower: "Baby Shower",
@@ -349,7 +349,7 @@ const GALLERY_ITEMS = (() => {
 
 const GALLERY_CATEGORIES = [
   "All",
-  "Wedding Decor",
+  "Wedding Decoration",
   "Birthday Party",
   "Baby Shower",
   "Engagement",
