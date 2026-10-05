@@ -1,5 +1,17 @@
-import { useState, useMemo, useEffect } from "react";
-import { Routes, Route, Link, useNavigate, useParams } from "react-router-dom";
+
+import { useState, useMemo, useEffect, useRef } from "react";
+import { Routes, Route, Link, useNavigate, useParams, useLocation } from "react-router-dom";
+
+/* =================================================================
+   SCROLL TO TOP ON ROUTE CHANGE
+   ================================================================= */
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
 
 /* =================================================================
    AUTO-IMPORT ALL IMAGES from src/images/**
@@ -43,13 +55,11 @@ const heroImg = (() => {
 })();
 
 /* =================================================================
-   NEW: Hero image used on ALL Service pages — pulled from
-   src/images/decoration.(jpg|png|jpeg|webp|gif|svg)
+   Hero image used on ALL Service pages
    ================================================================= */
 const decorationHero = (() => {
   const key = Object.keys(allImages).find((k) => {
     const lower = k.toLowerCase();
-    // file basename must start with "decoration." (any extension we glob)
     return /(^|\/)decoration\.(jpg|jpeg|png|webp|gif|svg)$/.test(lower);
   });
   return key ? allImages[key] : "";
@@ -82,14 +92,65 @@ function formatPrice(n) {
   return "₹" + n.toLocaleString("en-IN");
 }
 
+/* =================================================================
+   WHATSAPP CONFIG
+   ================================================================= */
+const WHATSAPP_NUMBER = "918439090932";
+
+function buildWhatsAppUrl(item) {
+  const priceLine =
+    item && item.price != null ? formatPrice(item.price) : "Price on request";
+  const titleLine = (item && item.title) || "Decor Enquiry";
+  const imageLine =
+    item && item.img
+      ? `\n\n🖼️ Design: ${typeof window !== "undefined" ? window.location.origin : ""}${item.img}`
+      : "";
+
+  const message =
+    `Hi Shri Shakti Decor! 👋\n\n` +
+    `I'm interested in this design:\n` +
+    `• ${titleLine}\n` +
+    `• Price: ${priceLine}${imageLine}\n\n` +
+    `Could you please share more details?`;
+
+  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+}
+
+/* Build the prefilled WhatsApp URL for a SERVICE page pop-card item.
+   The item here is { url, price } from the service gallery — it has
+   no title/img keys, so we synthesize them from the service + item. */
+function buildServiceWhatsAppUrl(service, item) {
+  const priceLine =
+    item && item.price != null ? formatPrice(item.price) : "Price on request";
+  const titleLine = (service && service.title) || "Decor Enquiry";
+  const imageLine =
+    item && item.url
+      ? `\n\n🖼️ Design: ${typeof window !== "undefined" ? window.location.origin : ""}${item.url}`
+      : "";
+
+  const message =
+    `Hi Shri Shakti Decor! 👋\n\n` +
+    `I'm interested in this design:\n` +
+    `• ${titleLine}\n` +
+    `• Price: ${priceLine}${imageLine}\n\n` +
+    `Could you please share more details?`;
+
+  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+}
+
+/* =================================================================
+   FORMSUBMIT CONFIG
+   ================================================================= */
+const FORMSUBMIT_ENDPOINT = "https://formsubmit.co/ajax/sumitpasi944@gmail.com";
+const FORMSUBMIT_SUBJECT = "New Event Enquiry — Shri Shakti Decor";
+
 /* ============ DATA ============ */
 const navLinks = [
-  { label: "Home", href: "/", active: true },
-  { label: "Services", href: "#services" },
+  { label: "Home", href: "/" },
+  { label: "Services", href: "/services" },
   { label: "Gallery", href: "/gallery" },
-  { label: "Packages", href: "#" },
-  { label: "About", href: "#" },
-  { label: "Contact", href: "#quote" },
+  { label: "About", href: "/about" },
+  { label: "Contact", href: "/contact" },
 ];
 
 const serviceCards = [
@@ -271,13 +332,60 @@ const testimonials = [
     initials: "NV",
     bg: "#c9a58f",
   },
+  {
+    quote:
+      "The birthday setup was beyond magical! My daughter's face lit up the moment she saw the balloon arch and themed backdrop. Truly unforgettable.",
+    name: "Anjali Kapoor",
+    role: "Birthday Client",
+    initials: "AK",
+    bg: "#8a9a7e",
+  },
+  {
+    quote:
+      "Our baby shower was a dream! The pastel florals and cloud installations were picture-perfect. Every guest kept asking who did the decor.",
+    name: "Sneha Iyer",
+    role: "Baby Shower Client",
+    initials: "SI",
+    bg: "#c7a468",
+  },
+  {
+    quote:
+      "The Haldi and Mehndi setups were vibrant and full of tradition. They honoured our customs beautifully while keeping everything elegant.",
+    name: "Kavita Reddy",
+    role: "Haldi & Mehndi Client",
+    initials: "KR",
+    bg: "#c9a58f",
+  },
+  {
+    quote:
+      "For our 25th anniversary, they created the most romantic candlelit setup. It felt like our wedding day all over again. Pure magic!",
+    name: "Meera Joshi",
+    role: "Anniversary Client",
+    initials: "MJ",
+    bg: "#6b7a86",
+  },
+  {
+    quote:
+      "Professional, punctual and incredibly creative. Our product launch looked stunning and on-brand. Will definitely work with them again!",
+    name: "Arjun Nair",
+    role: "Corporate Client",
+    initials: "AN",
+    bg: "#8a9a7e",
+  },
+  {
+    quote:
+      "They designed our housewarming ceremony beautifully — every flower and drape was thoughtfully placed. Highly recommend their services!",
+    name: "Divya Menon",
+    role: "Special Occasion Client",
+    initials: "DM",
+    bg: "#c7a468",
+  },
 ];
 
 const footerQuickLinks = [
   "Home",
   "Services",
   "Gallery",
-  "Packages",
   "About",
   "Contact",
 ];
@@ -336,10 +444,8 @@ const GALLERY_ITEMS = (() => {
         likes: String(80 + ((i * 37) % 220)),
         views: `${1 + ((i * 7) % 9) / 10}k`,
         h: heights[i % heights.length],
-        title: `${catMap[folder] || "Decor"} — ${img.file
-          .replace(/\.[^.]+$/, "")
-          .replace(/_\d+$/, "")
-          .replace(/_/g, " ")}`,
+        /* Title now shows ONLY the category name (no "— haldi 006" suffix) */
+        title: catMap[folder] || "Decor",
       });
       i++;
     }
@@ -561,21 +667,137 @@ const Icon = {
       />
     </svg>
   ),
+  Phone: (p) => (
+    <svg viewBox="0 0 24 24" {...p}>
+      <path
+        d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.13.96.37 1.9.72 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.91.35 1.85.59 2.81.72A2 2 0 0122 16.92z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  ),
+  Mail: (p) => (
+    <svg viewBox="0 0 24 24" {...p}>
+      <rect
+        x="2"
+        y="4"
+        width="20"
+        height="16"
+        rx="2"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+      />
+      <path
+        d="M2 6l10 7 10-7"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+      />
+    </svg>
+  ),
+  Pin: (p) => (
+    <svg viewBox="0 0 24 24" {...p}>
+      <path
+        d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+      />
+      <circle
+        cx="12"
+        cy="10"
+        r="3"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+      />
+    </svg>
+  ),
+  Facebook: (p) => (
+    <svg viewBox="0 0 24 24" {...p}>
+      <path
+        d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"
+        fill="currentColor"
+      />
+    </svg>
+  ),
+  Instagram: (p) => (
+    <svg viewBox="0 0 24 24" {...p}>
+      <rect
+        x="2"
+        y="2"
+        width="20"
+        height="20"
+        rx="5"
+        ry="5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <circle
+        cx="12"
+        cy="12"
+        r="4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <circle cx="17.5" cy="6.5" r="1.2" fill="currentColor" />
+    </svg>
+  ),
+  YouTube: (p) => (
+    <svg viewBox="0 0 24 24" {...p}>
+      <rect
+        x="2"
+        y="5"
+        width="20"
+        height="14"
+        rx="4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M10 9l5 3-5 3z"
+        fill="currentColor"
+      />
+    </svg>
+  ),
+  Check: (p) => (
+    <svg viewBox="0 0 24 24" {...p}>
+      <path
+        d="M4 12l5 5L20 6"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  ),
 };
 
 /* ============ NAV ============ */
 function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { pathname } = useLocation();
+
   return (
     <nav className="bg-b-nav sticky top-0 z-50 border-b border-[#f0e8e1]">
-      <div className="max-w-[1200px] mx-auto px-10 max-[860px]:px-5 h-16 flex items-center justify-between">
+      <div className="relative max-w-[1200px] mx-auto px-10 max-[860px]:px-5 h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-[10px]">
-          <span className="text-[26px] text-b-rose font-allura leading-none">
-            ✿
-          </span>
+          <img
+            src="/images/decoration_logos.png"
+            alt="Shri Shakti Decor Logo"
+            className="w-[110px] h-[110px] object-contain"
+          />
           <span>
             <b className="font-newsreader font-normal text-[22px] leading-none block">
-              Bloom <i className="text-b-rose not-italic">&amp;</i> Occasion
+              Shri Shakti <i className="text-b-rose not-italic">Decor</i>
             </b>
             <small className="text-[8px] text-b-muted tracking-[.06em]">
               Flowers · Decor · Special Moments
@@ -586,40 +808,46 @@ function Navbar() {
           {navLinks.map((l) => (
             <Link
               key={l.label}
-              to={l.href.startsWith("#") ? "/" + l.href : l.href}
-              className={l.active ? "border-b border-b-green pb-1" : ""}
+              to={l.href}
+              className={
+                pathname === l.href ? "border-b border-b-green pb-1" : ""
+              }
             >
               {l.label}
             </Link>
           ))}
         </div>
-        <Link to="/#quote" className="btn btn-dark max-[860px]:hidden">
+        <Link to="/contact" className="btn btn-dark max-[860px]:hidden">
           Get a Quote &nbsp;→
         </Link>
         <button
           onClick={() => setMenuOpen((v) => !v)}
           className="hidden max-[860px]:flex flex-col gap-[5px] bg-transparent border-0 cursor-pointer"
           aria-label="Menu"
+          aria-expanded={menuOpen}
         >
           <span className="block w-6 h-[1.5px] bg-b-green" />
           <span className="block w-6 h-[1.5px] bg-b-green" />
           <span className="block w-6 h-[1.5px] bg-b-green" />
         </button>
+
+        {menuOpen && (
+          <div
+            className="hidden max-[860px]:flex flex-col absolute top-16 left-0 right-0 bg-b-nav border-b border-[#f0e8e1] shadow-[0_8px_20px_rgba(0,0,0,.08)] z-50"
+          >
+            {navLinks.map((l) => (
+              <Link
+                key={l.label}
+                to={l.href}
+                onClick={() => setMenuOpen(false)}
+                className="py-4 px-5 border-b border-[#f0e8e1] text-sm bg-b-nav"
+              >
+                {l.label}
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
-      {menuOpen && (
-        <div className="hidden max-[860px]:flex flex-col bg-b-nav border-t border-[#f0e8e1]">
-          {navLinks.map((l) => (
-            <Link
-              key={l.label}
-              to={l.href.startsWith("#") ? "/" + l.href : l.href}
-              onClick={() => setMenuOpen(false)}
-              className="py-4 px-5 border-b border-[#f0e8e1] text-sm"
-            >
-              {l.label}
-            </Link>
-          ))}
-        </div>
-      )}
     </nav>
   );
 }
@@ -632,15 +860,14 @@ function Footer() {
         <div className="grid grid-cols-[1.5fr_1fr_1fr_1.3fr] max-[860px]:grid-cols-1 gap-[30px] pb-[26px]">
           <div>
             <div className="flex items-center gap-[10px]">
-              <span
-                className="text-[26px] font-allura"
-                style={{ color: "#e8d9cc" }}
-              >
-                ✿
-              </span>
+              <img
+                src="/images/decoration_logo.png"
+                alt="Shri Shakti Decor Logo"
+                className="w-[100px] h-[100px] object-contain"
+              />
               <span>
                 <b className="font-newsreader font-normal text-[20px] block leading-none text-white">
-                  Bloom &amp; Occasion
+                  Shri Shakti Decor
                 </b>
                 <small
                   className="text-[8px] tracking-[.06em]"
@@ -657,29 +884,43 @@ function Footer() {
               Creating beautiful moments with fresh flowers and creative decor.
             </p>
             <div className="flex gap-2 mt-3">
-              {["◎", "f", "p", "▶"].map((s) => (
-                <span
-                  key={s}
-                  className="w-5 h-5 rounded-full grid place-items-center text-[9px]"
-                  style={{ border: "1px solid #fff6" }}
-                >
-                  {s}
-                </span>
-              ))}
+              <a
+                href="https://www.instagram.com/reel/C0fmi7NvOap/?stkn=N3ByMm96Nzdxb2p1"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Instagram"
+                className="w-6 h-6 rounded-full grid place-items-center text-white hover:bg-white/20 transition-colors"
+                style={{ border: "1px solid #fff6" }}
+              >
+                <Icon.Instagram className="w-3.5 h-3.5" />
+              </a>
+              <a
+                href="https://www.youtube.com/@SumitPasi.youtube"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="YouTube"
+                className="w-6 h-6 rounded-full grid place-items-center text-white hover:bg-white/20 transition-colors"
+                style={{ border: "1px solid #fff6" }}
+              >
+                <Icon.YouTube className="w-3.5 h-3.5" />
+              </a>
             </div>
           </div>
           <div>
             <h6 className="text-[10px] font-medium mb-3">Quick Links</h6>
             <ul>
-              {footerQuickLinks.map((l) => (
-                <li
-                  key={l}
-                  className="text-[9px] mb-[7px]"
-                  style={{ color: "#e6ddd2" }}
-                >
-                  <Link to={l === "Gallery" ? "/gallery" : "/"}>{l}</Link>
-                </li>
-              ))}
+              {footerQuickLinks.map((l) => {
+                const slug = l.toLowerCase();
+                return (
+                  <li
+                    key={l}
+                    className="text-[9px] mb-[7px]"
+                    style={{ color: "#e6ddd2" }}
+                  >
+                    <Link to={slug === "home" ? "/" : `/${slug}`}>{l}</Link>
+                  </li>
+                );
+              })}
             </ul>
           </div>
           <div>
@@ -703,15 +944,14 @@ function Footer() {
             <h6 className="text-[10px] font-medium mb-3">Contact Us</h6>
             <ul>
               <li className="text-[9px] mb-[7px]" style={{ color: "#e6ddd2" }}>
-                ☎ +91 98765 43210
+                ☎ +91 8439090932
               </li>
               <li className="text-[9px] mb-[7px]" style={{ color: "#e6ddd2" }}>
-                ✉ hello@bloomandoccasion.in
-              </li>
+                ✉ sumitpasi944@gmail.com              </li>
               <li className="text-[9px] mb-[7px]" style={{ color: "#e6ddd2" }}>
-                ⌖ 123 Flower Street,
+                ⌖ Shiv Chowk Kanker Khere,
                 <br />
-                &nbsp;&nbsp;&nbsp;New Delhi, India
+                &nbsp;&nbsp;&nbsp;Meerut Cantt
               </li>
             </ul>
           </div>
@@ -720,11 +960,352 @@ function Footer() {
           className="flex justify-between flex-wrap gap-2 py-[14px] text-[8px]"
           style={{ borderTop: "1px solid #ffffff1f", color: "#cfc8bd" }}
         >
-          <span>© 2025 Bloom &amp; Occasion. All rights reserved.</span>
+          <span>© 2025 Shri Shakti Decor. All rights reserved.</span>
           <span>Privacy Policy &nbsp;|&nbsp; Terms &amp; Conditions</span>
         </div>
       </div>
     </footer>
+  );
+}
+
+/* ============ TESTIMONIALS CAROUSEL ============ */
+function TestimonialsCarousel() {
+  const scrollRef = useRef(null);
+  const [activeDot, setActiveDot] = useState(0);
+
+  const totalCards = testimonials.length;
+  const perView = 3;
+  const totalDots = Math.ceil(totalCards / perView);
+
+  const scrollToPage = (page) => {
+    setActiveDot(page);
+    const container = scrollRef.current;
+    if (!container) return;
+    const cardWidth = container.offsetWidth / perView;
+    container.scrollTo({
+      left: page * cardWidth * perView,
+      behavior: "smooth",
+    });
+  };
+
+  const handleScroll = () => {
+    const container = scrollRef.current;
+    if (!container) return;
+    const cardWidth = container.offsetWidth / perView;
+    const page = Math.round(container.scrollLeft / (cardWidth * perView));
+    setActiveDot(page);
+  };
+
+  const handlePrev = () => {
+    scrollToPage(Math.max(0, activeDot - 1));
+  };
+  const handleNext = () => {
+    scrollToPage(Math.min(totalDots - 1, activeDot + 1));
+  };
+
+  return (
+    <>
+      <div className="flex justify-between items-center">
+        <div>
+          <div className="eyebrow !text-[8px]">What Our Clients Say</div>
+          <h2 className="serif text-[24px] mt-[2px]">Happy Customers</h2>
+        </div>
+        <span className="hidden max-[860px]:hidden">
+          <button
+            onClick={handlePrev}
+            aria-label="Previous testimonials"
+            className="circ-light cursor-pointer bg-transparent border-0"
+          >
+            ←
+          </button>
+          <button
+            onClick={handleNext}
+            aria-label="Next testimonials"
+            className="circ-light cursor-pointer bg-transparent border-0"
+          >
+            →
+          </button>
+        </span>
+      </div>
+
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="flex gap-[14px] mt-4 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2"
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+      >
+        {testimonials.map((t) => (
+          <div
+            key={t.name}
+            className="bg-[#fbfaf9] rounded-[8px] p-4 shadow-[0_1px_4px_#0000000d] relative flex-none w-[calc(33.333%-10px)] max-[860px]:w-full snap-start"
+          >
+            <div className="w-[22px] h-[22px] rounded-full bg-[#f1ebe5] grid place-items-center text-[13px] text-b-rose mb-2">
+              “
+            </div>
+            <span className="text-[#e8923a] text-[10px] tracking-[2px] absolute left-[46px] top-5">
+              ★★★★★
+            </span>
+            <p className="text-[11px] leading-[1.6] mb-[14px]">{t.quote}</p>
+            <div className="flex gap-[10px] items-center text-[10px]">
+              <span
+                className="w-[26px] h-[26px] rounded-full text-white grid place-items-center text-[10px]"
+                style={{ background: t.bg }}
+              >
+                {t.initials}
+              </span>
+              <span>
+                — {t.name}
+                <small className="block text-b-muted">{t.role}</small>
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="text-center mt-[14px] text-[8px] tracking-[4px] text-[#d8cdc4]">
+        {Array.from({ length: totalDots }).map((_, i) => (
+          <button
+            key={i}
+            onClick={() => scrollToPage(i)}
+            aria-label={`Go to testimonial page ${i + 1}`}
+            className={`cursor-pointer bg-transparent border-0 text-[10px] tracking-[4px] ${
+              i === activeDot ? "text-b-green font-bold" : "text-[#d8cdc4]"
+            }`}
+          >
+            ●
+          </button>
+        ))}
+      </div>
+    </>
+  );
+}
+
+/* ============ ENQUIRY FORM ============ */
+function EnquiryForm({ variant = "home" }) {
+  const isContact = variant === "contact";
+
+  const [status, setStatus] = useState("idle");
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (status === "sending") return;
+
+    const form = e.currentTarget;
+    const data = new FormData(form);
+
+    data.append("_subject", FORMSUBMIT_SUBJECT);
+    data.append("_template", "table");
+    data.append("_captcha", "false");
+
+    setStatus("sending");
+    setErrorMsg("");
+
+    try {
+      const res = await fetch(FORMSUBMIT_ENDPOINT, {
+        method: "POST",
+        body: data,
+        headers: { Accept: "application/json" },
+      });
+
+      if (!res.ok) {
+        throw new Error(`Submission failed (${res.status})`);
+      }
+
+      setStatus("success");
+      form.reset();
+
+      setTimeout(() => setStatus("idle"), 6000);
+    } catch (err) {
+      console.error(err);
+      setStatus("error");
+      setErrorMsg(
+        "Something went wrong. Please try again or email us directly at sumitpasi944@gmail.com",
+      );
+    }
+  };
+
+  const inputBase = isContact
+    ? "w-full mt-1 border border-[#e6dfd9] rounded-[6px] p-[10px] text-[12px] bg-white font-inter outline-none focus:border-b-green"
+    : "w-full mt-1 border border-[#e6dfd9] rounded-[4px] p-[7px] text-[9px] bg-white font-inter";
+  const labelBase = isContact
+    ? "block text-[10px] font-medium text-b-text"
+    : "block text-[8px] font-medium";
+
+  if (status === "success") {
+    return (
+      <div
+        className={
+          isContact
+            ? "bg-b-card rounded-[14px] p-7 shadow-[0_4px_16px_#0000000d] flex flex-col items-center justify-center text-center min-h-[420px]"
+            : "bg-[#f9f8f7] rounded-[8px] p-[20px] text-b-green flex flex-col items-center justify-center text-center min-h-[280px]"
+        }
+      >
+        <div
+          className="w-14 h-14 rounded-full grid place-items-center mb-4 text-white"
+          style={{ background: "#2f5d50" }}
+        >
+          <Icon.Check className="w-7 h-7" />
+        </div>
+        <h3
+          className={
+            isContact
+              ? "font-newsreader font-normal text-[22px] mb-2 text-b-green"
+              : "font-newsreader font-normal text-[18px] mb-2"
+          }
+        >
+          Thank you!
+        </h3>
+        <p
+          className={
+            isContact
+              ? "text-[12px] text-b-muted max-w-[300px] leading-[1.7]"
+              : "text-[10px] max-w-[240px] leading-[1.6]"
+          }
+        >
+          Your message has been sent successfully. We'll get back to you within
+          24 hours.
+        </p>
+        <button
+          onClick={() => setStatus("idle")}
+          className={
+            isContact
+              ? "mt-5 text-[11px] underline text-b-green hover:no-underline cursor-pointer bg-transparent border-0"
+              : "mt-4 text-[9px] underline cursor-pointer bg-transparent border-0"
+          }
+        >
+          Send another message
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      className={
+        isContact
+          ? "bg-b-card rounded-[14px] p-7 shadow-[0_4px_16px_#0000000d] grid grid-cols-2 gap-[14px]"
+          : "bg-[#f9f8f7] rounded-[8px] p-[14px] grid grid-cols-2 gap-[10px] text-b-green"
+      }
+    >
+      {isContact && (
+        <h3 className="col-span-2 font-newsreader font-normal text-[20px] mb-2">
+          Send us a message
+        </h3>
+      )}
+
+      <label className={labelBase}>
+        Full Name <i className="text-[#c0392b] not-italic">*</i>
+        <input
+          type="text"
+          name="name"
+          required
+          placeholder="Your name"
+          className={inputBase}
+        />
+      </label>
+
+      {isContact && (
+        <label className={labelBase}>
+          Phone Number <i className="text-[#c0392b] not-italic">*</i>
+          <input
+            type="tel"
+            name="phone"
+            required
+            placeholder="+91 ..."
+            className={inputBase}
+          />
+        </label>
+      )}
+
+      <label className={`${labelBase} ${isContact ? "col-span-2" : ""}`}>
+        Email Address <i className="text-[#c0392b] not-italic">*</i>
+        <input
+          type="email"
+          name="email"
+          required
+          placeholder={isContact ? "you@example.com" : "you@company.com"}
+          className={inputBase}
+        />
+      </label>
+
+      <label className={labelBase}>
+        Event Type <i className="text-[#c0392b] not-italic">*</i>
+        <select
+          name="eventType"
+          required
+          defaultValue=""
+          className={inputBase}
+        >
+          <option value="" disabled>
+            Select event type
+          </option>
+          {serviceCards.map((s) => (
+            <option key={s.slug} value={s.title}>
+              {s.title}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label className={labelBase}>
+        Event Date{" "}
+        {!isContact && <i className="text-[#c0392b] not-italic">*</i>}
+        <input
+          type="date"
+          name="eventDate"
+          required={!isContact}
+          className={inputBase}
+        />
+      </label>
+
+      <label
+        className={`${labelBase} col-span-2`}
+      >
+        Message{" "}
+        {isContact && <i className="text-[#c0392b] not-italic">*</i>}
+        <textarea
+          name="message"
+          required={isContact}
+          placeholder={
+            isContact
+              ? "Tell us about your event, venue, guest count..."
+              : "Tell us about your event..."
+          }
+          className={`${inputBase} ${
+            isContact ? "h-[120px] resize-none" : "h-[48px] resize-none"
+          }`}
+        />
+      </label>
+
+      {status === "error" && (
+        <div
+          className={`col-span-2 text-[10px] p-2 rounded ${
+            isContact ? "text-[11px]" : "text-[9px]"
+          }`}
+          style={{
+            background: "#fdecea",
+            color: "#c0392b",
+            border: "1px solid #f5c6cb",
+          }}
+        >
+          {errorMsg}
+        </div>
+      )}
+
+      <button
+        type="submit"
+        disabled={status === "sending"}
+        className={
+          isContact
+            ? "col-span-2 bg-[#0c2621] text-white border-0 rounded-[6px] p-[12px] text-[12px] cursor-pointer font-inter font-medium hover:bg-b-green transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            : "col-span-2 bg-[#0c2621] text-white border-0 rounded-[4px] p-[9px] text-[10px] cursor-pointer font-inter hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
+        }
+      >
+        {status === "sending" ? "Sending..." : "Send Message \u00A0→"}
+      </button>
+    </form>
   );
 }
 
@@ -753,7 +1334,7 @@ function HomePage() {
             floral decorations that bring your vision to life.
           </p>
           <div className="flex flex-wrap gap-[14px]">
-            <Link to="/#services" className="btn btn-gold">
+            <Link to="/services" className="btn btn-gold">
               Explore Our Services →
             </Link>
             <Link to="/gallery" className="btn btn-ghost">
@@ -808,7 +1389,7 @@ function HomePage() {
             your special moments. Choose from our wide range of decoration
             services tailored to your needs.
           </p>
-          <Link to="/#services" className="btn btn-out">
+          <Link to="/services" className="btn btn-out">
             View All Services &nbsp;→
           </Link>
           <div className="grid grid-cols-4 max-[860px]:grid-cols-2 gap-[14px] mt-[30px]">
@@ -875,8 +1456,8 @@ function HomePage() {
           </Link>
         </div>
         <div className="overflow-hidden">
-          <div className="grid grid-cols-[1.25fr_1fr] gap-[9px] h-[214px] overflow-hidden">
-            <div className="row-span-3 rounded-[8px] overflow-hidden relative">
+          <div className="grid grid-cols-4 gap-[9px] h-[214px] overflow-hidden">
+            <div className="col-span-2 row-span-1 rounded-[8px] overflow-hidden relative">
               {featuredImages[0] ? (
                 <img
                   src={featuredImages[0].src}
@@ -893,8 +1474,8 @@ function HomePage() {
                 />
               )}
             </div>
-            <div className="grid gap-[7px] grid-rows-3 overflow-hidden">
-              {[1, 2, 3].map((i) => {
+            <div className="col-span-2 grid grid-cols-2 gap-[7px]">
+              {[1, 2].map((i) => {
                 const img = featuredImages[i];
                 return (
                   <div
@@ -919,18 +1500,24 @@ function HomePage() {
                   </div>
                 );
               })}
+              <div className="col-span-2 rounded-[6px] overflow-hidden relative">
+                {featuredImages[3] ? (
+                  <img
+                    src={featuredImages[3].src}
+                    alt={featuredImages[3].alt}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                ) : (
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      background:
+                        "linear-gradient(150deg, #8a9a7e 0%, #f1eadc 60%, #c7a468 130%)",
+                    }}
+                  />
+                )}
+              </div>
             </div>
-          </div>
-          <div className="flex justify-between items-center text-[10px] text-[#cfc8bd] mt-4">
-            <span>
-              01{" "}
-              <span className="inline-block w-[50px] h-px bg-white align-middle mx-[6px]" />{" "}
-              01
-            </span>
-            <span>
-              <span className="circ">←</span>
-              <span className="circ on">→</span>
-            </span>
           </div>
         </div>
       </section>
@@ -940,7 +1527,7 @@ function HomePage() {
           <div>
             <div className="eyebrow">Why Choose Us</div>
             <h2 className="serif text-[28px] leading-[1.15] mt-[6px]">
-              The Bloom &amp; Occasion difference
+              The Shri Shakti Decor difference
             </h2>
           </div>
           <div className="grid grid-cols-4 max-[860px]:grid-cols-2 max-[860px]:gap-y-5">
@@ -963,47 +1550,7 @@ function HomePage() {
       </section>
 
       <section className="bg-b-wrap rounded-[12px] pt-5 px-[22px] pb-[18px] mx-[22px] mt-[14px]">
-        <div className="flex justify-between items-center">
-          <div>
-            <div className="eyebrow !text-[8px]">What Our Clients Say</div>
-            <h2 className="serif text-[24px] mt-[2px]">Happy Customers</h2>
-          </div>
-          <span className="hidden max-[860px]:hidden">
-            <span className="circ-light">←</span>
-            <span className="circ-light">→</span>
-          </span>
-        </div>
-        <div className="grid grid-cols-3 max-[860px]:grid-cols-1 gap-[14px] mt-4">
-          {testimonials.map((t) => (
-            <div
-              key={t.name}
-              className="bg-[#fbfaf9] rounded-[8px] p-4 shadow-[0_1px_4px_#0000000d] relative"
-            >
-              <div className="w-[22px] h-[22px] rounded-full bg-[#f1ebe5] grid place-items-center text-[13px] text-b-rose mb-2">
-                “
-              </div>
-              <span className="text-[#e8923a] text-[10px] tracking-[2px] absolute left-[46px] top-5">
-                ★★★★★
-              </span>
-              <p className="text-[11px] leading-[1.6] mb-[14px]">{t.quote}</p>
-              <div className="flex gap-[10px] items-center text-[10px]">
-                <span
-                  className="w-[26px] h-[26px] rounded-full text-white grid place-items-center text-[10px]"
-                  style={{ background: t.bg }}
-                >
-                  {t.initials}
-                </span>
-                <span>
-                  — {t.name}
-                  <small className="block text-b-muted">{t.role}</small>
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="text-center mt-[14px] text-[8px] tracking-[4px] text-[#d8cdc4]">
-          <b className="text-b-green">●</b> ● ● ●
-        </div>
+        <TestimonialsCarousel />
       </section>
 
       <section
@@ -1026,62 +1573,312 @@ function HomePage() {
               Tell us about your event and we'll get back to you with a
               customized quote and design plan.
             </p>
-            <a
-              href="#quote"
+            <Link
+              to="/contact"
               className="btn"
               style={{ background: "#f8e5cf", color: "#0b1f1a" }}
             >
               Get a Free Quote &nbsp;→
-            </a>
+            </Link>
           </div>
-          <form
-            onSubmit={(e) => e.preventDefault()}
-            className="bg-[#f9f8f7] rounded-[8px] p-[14px] grid grid-cols-2 gap-[10px] text-b-green"
-          >
-            <label className="block text-[8px] font-medium">
-              Full Name <i className="text-[#c0392b] not-italic">*</i>
-              <input
-                placeholder="Your name"
-                className="w-full mt-1 border border-[#e6dfd9] rounded-[4px] p-[7px] text-[9px] bg-white font-inter"
+          <EnquiryForm variant="home" />
+        </div>
+      </section>
+
+      <Footer />
+    </div>
+  );
+}
+
+/* ============ SERVICES PAGE ============ */
+function ServicesPage() {
+  return (
+    <div className="min-h-screen bg-b-cream text-b-text font-inter">
+      <Navbar />
+
+      <section
+        className="relative py-[60px] text-white overflow-hidden"
+        style={{
+          background: `linear-gradient(90deg, #0d1812 0%, #0d1812 50%, rgba(13,24,18,0.7) 100%), url(${heroImg}) right center / cover no-repeat, #0d1812`,
+        }}
+      >
+        <div className="max-w-[1200px] mx-auto px-10 max-[860px]:px-5 relative z-10">
+          <div className="eyebrow" style={{ color: "#e6ddd2" }}>
+            What We Offer
+          </div>
+          <h1 className="serif text-[clamp(32px,4.5vw,48px)] leading-[1.1] mt-[14px] mb-4 max-w-[500px]">
+            Our Decoration Services
+          </h1>
+          <p className="max-w-[420px] text-[13px] text-[#f1ebe3]">
+            From intimate gatherings to grand celebrations, we design beautiful
+            setups for every occasion.
+          </p>
+        </div>
+      </section>
+
+      <section className="py-[50px]">
+        <div className="max-w-[1200px] mx-auto px-10 max-[860px]:px-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[20px]">
+            {serviceCards.map((c) => {
+              const cover = coverImage(c.folder);
+              return (
+                <Link
+                  key={c.slug}
+                  to={`/services/${c.slug}`}
+                  className="bg-b-card rounded-[12px] overflow-hidden relative pb-[18px] block shadow-[0_2px_8px_#0000000a]"
+                >
+                  <div
+                    className="h-[160px] bg-cover bg-center bg-b-line"
+                    style={
+                      cover
+                        ? { backgroundImage: `url(${cover})` }
+                        : {
+                            background:
+                              "linear-gradient(135deg, #c9a58f 0%, #e8d9cc 45%, #8a9a7e 130%)",
+                          }
+                    }
+                  />
+                  <span className="absolute left-[18px] top-[138px] w-[42px] h-[42px] rounded-full bg-white grid place-items-center text-b-rose shadow-[0_3px_8px_#0002] text-[18px]">
+                    {c.icon}
+                  </span>
+                  <div className="pt-[34px] px-5">
+                    <h3 className="font-newsreader font-normal text-[20px] mb-2">
+                      {c.title}
+                    </h3>
+                    <p className="text-[12px] text-b-muted leading-[1.6] mb-3">
+                      {c.tagline}
+                    </p>
+                    <span className="text-[11px] text-b-green font-medium">
+                      Learn more →
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <Footer />
+    </div>
+  );
+}
+
+/* ============ ABOUT PAGE ============ */
+function AboutPage() {
+  return (
+    <div className="min-h-screen bg-b-cream text-b-text font-inter">
+      <Navbar />
+
+      <section
+        className="relative py-[60px] text-white overflow-hidden"
+        style={{
+          background: `linear-gradient(90deg, #0d1812 0%, #0d1812 50%, rgba(13,24,18,0.7) 100%), url(${heroImg}) right center / cover no-repeat, #0d1812`,
+        }}
+      >
+        <div className="max-w-[1200px] mx-auto px-10 max-[860px]:px-5 relative z-10">
+          <div className="eyebrow" style={{ color: "#e6ddd2" }}>
+            Our Story
+          </div>
+          <h1 className="serif text-[clamp(32px,4.5vw,48px)] leading-[1.1] mt-[14px] mb-4 max-w-[500px]">
+            About Shri Shakti Decor
+          </h1>
+          <p className="max-w-[420px] text-[13px] text-[#f1ebe3]">
+            Crafting beautiful memories with fresh flowers and creative decor
+            since 2017.
+          </p>
+        </div>
+      </section>
+
+      <section className="py-[50px]">
+        <div className="max-w-[1200px] mx-auto px-10 max-[860px]:px-5 grid grid-cols-1 md:grid-cols-2 gap-[50px] items-center">
+          <div>
+            <div className="eyebrow">Who We Are</div>
+            <h2 className="serif text-[clamp(24px,3vw,32px)] leading-[1.2] mt-2 mb-5">
+              Passionate about making your moments unforgettable
+            </h2>
+            <p className="text-[13px] text-b-muted leading-[1.9] mb-4">
+              Shri Shakti Decor is a full-service floral and event decoration
+              company based in Meerut Cantt. For over 8 years, we've been
+              transforming ordinary spaces into breathtaking celebrations with
+              fresh flowers, elegant drapes and premium installations.
+            </p>
+            <p className="text-[13px] text-b-muted leading-[1.9] mb-6">
+              From intimate engagements to grand weddings and corporate galas,
+              our team brings creativity, precision and warmth to every event.
+              We believe every celebration deserves decor that tells your
+              unique story.
+            </p>
+            <div className="flex gap-[30px]">
+              <div>
+                <b className="font-newsreader font-normal text-[28px] block text-b-green">
+                  500+
+                </b>
+                <small className="text-[10px] text-b-muted">
+                  Events Decorated
+                </small>
+              </div>
+              <div>
+                <b className="font-newsreader font-normal text-[28px] block text-b-green">
+                  8+
+                </b>
+                <small className="text-[10px] text-b-muted">
+                  Years Experience
+                </small>
+              </div>
+              <div>
+                <b className="font-newsreader font-normal text-[28px] block text-b-green">
+                  4.9★
+                </b>
+                <small className="text-[10px] text-b-muted">Client Rating</small>
+              </div>
+            </div>
+          </div>
+
+          <div className="relative rounded-[14px] overflow-hidden h-[380px] shadow-[0_10px_30px_#0000001a]">
+            {featuredImages[0] && (
+              <img
+                src={featuredImages[0].src}
+                alt="About Shri Shakti Decor"
+                className="w-full h-full object-cover"
               />
-            </label>
-            <label className="block text-[8px] font-medium">
-              Email Address <i className="text-[#c0392b] not-italic">*</i>
-              <input
-                placeholder="you@company.com"
-                className="w-full mt-1 border border-[#e6dfd9] rounded-[4px] p-[7px] text-[9px] bg-white font-inter"
-              />
-            </label>
-            <label className="block text-[8px] font-medium">
-              Event Type <i className="text-[#c0392b] not-italic">*</i>
-              <select className="w-full mt-1 border border-[#e6dfd9] rounded-[4px] p-[7px] text-[9px] bg-white font-inter">
-                <option>Select event type</option>
-                <option>Wedding</option>
-                <option>Engagement</option>
-                <option>Birthday</option>
-              </select>
-            </label>
-            <label className="block text-[8px] font-medium">
-              Event Date <i className="text-[#c0392b] not-italic">*</i>
-              <input
-                type="date"
-                className="w-full mt-1 border border-[#e6dfd9] rounded-[4px] p-[7px] text-[9px] bg-white font-inter"
-              />
-            </label>
-            <label className="col-span-2 block text-[8px] font-medium">
-              Message
-              <textarea
-                placeholder="Tell us about your event..."
-                className="w-full mt-1 border border-[#e6dfd9] rounded-[4px] p-[7px] text-[9px] bg-white font-inter h-[48px] resize-none"
-              />
-            </label>
-            <button
-              type="button"
-              className="col-span-2 bg-[#0c2621] text-white border-0 rounded-[4px] p-[9px] text-[10px] cursor-pointer font-inter"
-            >
-              Send Message &nbsp;→
-            </button>
-          </form>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-[40px] bg-b-wrap mx-[22px] rounded-[12px]">
+        <div className="max-w-[1200px] mx-auto px-10 max-[860px]:px-5">
+          <div className="eyebrow text-center">Our Values</div>
+          <h2 className="serif text-[28px] text-center mt-2 mb-8">
+            What drives us every day
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-[20px]">
+            {whyItems.map((w) => (
+              <div key={w.title} className="text-center">
+                <i className="inline-grid place-items-center w-[46px] h-[46px] rounded-full bg-[#f7e1d4] text-b-rose not-italic mb-3 text-[18px]">
+                  {w.icon}
+                </i>
+                <h5 className="text-[13px] font-medium mb-[6px]">{w.title}</h5>
+                <p className="text-[10.5px] text-b-muted leading-[1.5]">
+                  {w.desc}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-[50px]">
+        <div className="max-w-[1200px] mx-auto px-10 max-[860px]:px-5">
+          <TestimonialsCarousel />
+        </div>
+      </section>
+
+      <Footer />
+    </div>
+  );
+}
+
+/* ============ CONTACT PAGE ============ */
+function ContactPage() {
+  return (
+    <div className="min-h-screen bg-b-cream text-b-text font-inter">
+      <Navbar />
+
+      <section
+        className="relative py-[60px] text-white overflow-hidden"
+        style={{
+          background: `linear-gradient(90deg, #0d1812 0%, #0d1812 50%, rgba(13,24,18,0.7) 100%), url(${heroImg}) right center / cover no-repeat, #0d1812`,
+        }}
+      >
+        <div className="max-w-[1200px] mx-auto px-10 max-[860px]:px-5 relative z-10">
+          <div className="eyebrow" style={{ color: "#e6ddd2" }}>
+            Get In Touch
+          </div>
+          <h1 className="serif text-[clamp(32px,4.5vw,48px)] leading-[1.1] mt-[14px] mb-4 max-w-[500px]">
+            Let's Plan Your Event
+          </h1>
+          <p className="max-w-[420px] text-[13px] text-[#f1ebe3]">
+            Tell us about your celebration and we'll get back to you with a
+            personalized quote.
+          </p>
+        </div>
+      </section>
+
+      <section className="py-[50px]">
+        <div className="max-w-[1200px] mx-auto px-10 max-[860px]:px-5 grid grid-cols-1 md:grid-cols-[1fr_1.4fr] gap-[40px]">
+          <div>
+            <div className="eyebrow">Contact Information</div>
+            <h2 className="serif text-[28px] leading-[1.2] mt-2 mb-6">
+              We'd love to hear from you
+            </h2>
+
+            <div className="space-y-[20px]">
+              <div className="flex gap-[14px] items-start">
+                <div className="w-[42px] h-[42px] rounded-[10px] bg-[#f7e1d4] grid place-items-center text-b-green flex-none">
+                  <Icon.Phone className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase tracking-[.1em] text-b-muted mb-1">
+                    Phone
+                  </div>
+                  <a
+                    href="tel:+918439090932"
+                    className="text-[13px] font-medium hover:text-b-green"
+                  >
+                    +91 8439090932
+                  </a>
+                </div>
+              </div>
+
+              <div className="flex gap-[14px] items-start">
+                <div className="w-[42px] h-[42px] rounded-[10px] bg-[#f7e1d4] grid place-items-center text-b-green flex-none">
+                  <Icon.Mail className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase tracking-[.1em] text-b-muted mb-1">
+                    Email
+                  </div>
+                  <a
+                    href="mailto:sumitpasi944@gmail.com"
+                    className="text-[13px] font-medium hover:text-b-green break-all"
+                  >
+                    sumitpasi944@gmail.com
+                  </a>
+                </div>
+              </div>
+
+              <div className="flex gap-[14px] items-start">
+                <div className="w-[42px] h-[42px] rounded-[10px] bg-[#f7e1d4] grid place-items-center text-b-green flex-none">
+                  <Icon.Pin className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase tracking-[.1em] text-b-muted mb-1">
+                    Address
+                  </div>
+                  <p className="text-[13px] font-medium leading-[1.5]">
+                    Shiv Chowk Kanker Khere,
+                    <br />
+                    Meerut Cantt
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-8 p-5 bg-b-wrap rounded-[10px]">
+              <h4 className="font-newsreader font-normal text-[16px] mb-2">
+                Business Hours
+              </h4>
+              <p className="text-[11.5px] text-b-muted leading-[1.7]">
+                Monday – Saturday: 10:00 AM – 7:00 PM
+                <br />
+                Sunday: By appointment only
+              </p>
+            </div>
+          </div>
+
+          <EnquiryForm variant="contact" />
         </div>
       </section>
 
@@ -1091,7 +1888,7 @@ function HomePage() {
 }
 
 /* ================================================================
-   SERVICE PAGE — matches the provided HTML UI
+   SERVICE PAGE
    ================================================================ */
 function ServicePage() {
   const { slug } = useParams();
@@ -1103,7 +1900,6 @@ function ServicePage() {
     setTilePage(0);
   }, [slug]);
 
-  /* clicked tile (popup) */
   const [selected, setSelected] = useState(null);
   useEffect(() => {
     setSelected(null);
@@ -1139,17 +1935,9 @@ function ServicePage() {
     );
   }
 
-  /* All images in this folder + priced-only subset */
   const allItems = allItemsInFolder(service.folder);
   const priced = allItems.filter((x) => x.price !== null);
 
-  /* =================================================================
-     HERO COVER
-     Prefer the shared decoration.* image (src/images/decoration.jpg)
-     so every service page shows the same hero background.
-     Fallback to the folder's first priced/any image if decoration.*
-     is missing.
-     ================================================================= */
   const bigCover = decorationHero || (priced[0] || allItems[0])?.url || "";
 
   const sourceItems = priced.length > 0 ? priced : allItems;
@@ -1163,8 +1951,6 @@ function ServicePage() {
   const tileStart = safePage * TILES_PER_PAGE;
   const tileItems = sourceItems.slice(tileStart, tileStart + TILES_PER_PAGE);
 
-  /* last page: fill leftover slots with images from the start
-     so the grid never shows empty space */
   for (
     let k = 0;
     tileItems.length > 0 && tileItems.length < TILES_PER_PAGE;
@@ -1173,7 +1959,6 @@ function ServicePage() {
     tileItems.push(sourceItems[k % sourceItems.length]);
   }
 
-  /* position of the opened image in the full list (-1 for the big hero tile) */
   const selIndex = selected ? sourceItems.indexOf(selected) : -1;
   const stepSelected = (d) =>
     setSelected(
@@ -1187,20 +1972,18 @@ function ServicePage() {
 
   return (
     <div className="min-h-screen bg-sp-bg text-sp-text font-inter">
-      {/* ============ HEADER ============ */}
+      {/* HEADER — now shows the real logo image on the left of the title */}
       <header className="bg-sp-bg sticky top-0 z-50">
         <div className="max-w-[1180px] mx-auto px-6 h-[78px] flex items-center justify-between">
           <Link to="/" className="flex items-center gap-[10px]">
-            <span
-              className="w-[34px] h-[34px] rounded-full inline-block"
-              style={{
-                background:
-                  "radial-gradient(circle, #e9b949 0 20%, #6f9a63 21% 60%, #dfa3a0 61%)",
-              }}
+            <img
+              src="/images/decoration_logos.png"
+              alt="Shri Shakti Decor Logo"
+              className="w-[110px] h-[110px] object-contain"
             />
             <span>
               <b className="block font-baskerville font-normal text-[21px] leading-none">
-                Bloom &amp; Occasion
+                Shri Shakti Decor
               </b>
               <small className="text-[9px] text-sp-muted">
                 Flowers · Decor · Special Moments
@@ -1212,25 +1995,22 @@ function ServicePage() {
             <Link to="/" className="py-1.5">
               Home
             </Link>
-            <Link to="/#services" className="py-1.5">
+            <Link to="/services" className="py-1.5">
               Services
             </Link>
             <Link to="/gallery" className="py-1.5">
               Gallery
             </Link>
-            <Link to="/" className="py-1.5">
-              Packages
-            </Link>
-            <Link to="/#about" className="py-1.5">
+            <Link to="/about" className="py-1.5">
               About
             </Link>
-            <Link to="/#contact" className="py-1.5">
+            <Link to="/contact" className="py-1.5">
               Contact
             </Link>
           </nav>
 
           <Link
-            to="/#contact"
+            to="/contact"
             className="hidden md:inline-flex items-center gap-2 bg-sp-gdark text-white px-[22px] py-3 rounded-full text-[12px] font-semibold"
           >
             ▣ Get a Quote →
@@ -1238,7 +2018,6 @@ function ServicePage() {
         </div>
       </header>
 
-      {/* ============ HERO ============ */}
       <section className="relative min-h-[520px] overflow-hidden bg-sp-gdark text-white">
         {bigCover && (
           <img
@@ -1284,7 +2063,7 @@ function ServicePage() {
 
           <div className="flex flex-wrap gap-4">
             <Link
-              to="/#contact"
+              to="/contact"
               className="inline-flex items-center gap-2 bg-sp-gold text-sp-gdark px-[22px] py-3 rounded-full text-[12px] font-semibold"
             >
               Get a Free Quote →
@@ -1305,7 +2084,6 @@ function ServicePage() {
         </div>
       </section>
 
-      {/* ============ ABOUT ============ */}
       <section className="bg-sp-bg py-[50px] pb-[44px]">
         <div className="max-w-[1180px] mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-[60px] items-center">
           <div>
@@ -1359,7 +2137,7 @@ function ServicePage() {
             </div>
 
             <Link
-              to="/#contact"
+              to="/contact"
               className="inline-flex items-center gap-2 bg-sp-gdark text-white px-[22px] py-3 rounded-full text-[12px] font-semibold"
             >
               Know More &nbsp;→
@@ -1386,7 +2164,6 @@ function ServicePage() {
         </div>
       </section>
 
-      {/* ============ PRICED GALLERY ============ */}
       <section className="bg-sp-panel rounded-[22px] max-w-[1128px] mx-auto px-5 pt-6 pb-7">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-3 mb-4">
           <div>
@@ -1492,7 +2269,6 @@ function ServicePage() {
         </div>
       </section>
 
-      {/* ============ CTA BANNER ============ */}
       <section className="bg-sp-cta rounded-[20px] max-w-[1128px] mx-auto mb-10 mt-10 px-5 md:pl-[150px] md:pr-10 py-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4 relative min-h-[96px]">
         <div className="hidden md:block absolute left-[18px] bottom-0 text-[60px] leading-none text-sp-mint">
           ✿
@@ -1508,14 +2284,13 @@ function ServicePage() {
           </p>
         </div>
         <Link
-          to="/#contact"
+          to="/contact"
           className="inline-flex items-center gap-2 bg-sp-gdark text-white px-[22px] py-3 rounded-full text-[12px] font-semibold"
         >
           Get a Free Quote →
         </Link>
       </section>
 
-      {/* ============ OTHER SERVICES ============ */}
       <section className="bg-sp-panel py-[60px] max-[720px]:py-[40px] mx-[22px] rounded-[14px] mb-6">
         <div className="max-w-[1180px] mx-auto px-6">
           <div className="eyebrow mb-2">Explore more</div>
@@ -1557,7 +2332,6 @@ function ServicePage() {
 
       <Footer />
 
-      {/* ============ IMAGE POPUP ============ */}
       {selected && (
         <div
           className="fixed inset-0 z-[60] bg-[rgba(10,24,20,.6)] flex items-center justify-center p-5"
@@ -1571,7 +2345,6 @@ function ServicePage() {
             style={{ backgroundColor: "#fbf7f3" }}
             className="w-full max-w-[860px] max-h-[92vh] overflow-auto rounded-[18px] grid grid-cols-1 md:grid-cols-[1.25fr_1fr] shadow-[0_12px_40px_rgba(0,0,0,.25)]"
           >
-            {/* image side */}
             <div className="relative h-[300px] md:h-auto md:min-h-[460px] bg-[#cfc8bd]">
               <img
                 src={selected.url}
@@ -1608,7 +2381,6 @@ function ServicePage() {
               )}
             </div>
 
-            {/* details side */}
             <div
               className="p-6 flex flex-col"
               style={{ backgroundColor: "#fbf7f3", color: "#1c2b27" }}
@@ -1650,14 +2422,28 @@ function ServicePage() {
                   Image {selIndex + 1} of {sourceItems.length}
                 </div>
               )}
-              <Link
-                to="/#contact"
-                onClick={() => setSelected(null)}
-                style={{ backgroundColor: "#0b231f", color: "#ffffff" }}
-                className="mt-auto inline-flex items-center justify-center gap-2 px-[22px] py-3 rounded-full text-[12px] font-semibold"
-              >
-                Get a Free Quote →
-              </Link>
+
+              {/* Two-button footer: WhatsApp + Get a Free Quote */}
+              <div className="mt-auto flex flex-col sm:flex-row gap-2">
+                <a
+                  href={buildServiceWhatsAppUrl(service, selected)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setSelected(null)}
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-[22px] py-3 rounded-full text-[12px] font-semibold bg-[#25D366] text-white hover:bg-[#1ebe5a] transition-colors"
+                >
+                  <Icon.WhatsApp className="w-4 h-4" />
+                  Get in Touch
+                </a>
+                <Link
+                  to="/contact"
+                  onClick={() => setSelected(null)}
+                  style={{ backgroundColor: "#0b231f", color: "#ffffff" }}
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-[22px] py-3 rounded-full text-[12px] font-semibold"
+                >
+                  Get a Free Quote →
+                </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -1674,7 +2460,7 @@ function ServicePage() {
   );
 }
 
-/* ============ GALLERY PAGE (unchanged) ============ */
+/* ============ GALLERY PAGE ============ */
 function GalleryPage() {
   const navigate = useNavigate();
   const [cat, setCat] = useState("All");
@@ -1711,7 +2497,8 @@ function GalleryPage() {
       if (e.key === "Escape") setModalOpen(false);
       if (e.key === "ArrowLeft")
         setCur((c) => (c - 1 + list.length) % list.length);
-      if (e.key === "ArrowRight") setCur((c) => (c + 1) % list.length);
+      if (e.key === "ArrowRight")
+        setCur((c) => (c + 1) % list.length);
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
@@ -1745,10 +2532,14 @@ function GalleryPage() {
       <div className="max-w-[1024px] mx-auto px-9 max-[520px]:px-4">
         <header className="relative flex items-center justify-between h-[82px]">
           <Link to="/" className="flex items-center gap-2">
-            <Icon.Logo className="w-8 h-8" />
+            <img
+              src="/images/decoration_logos.png"
+              alt="Shri Shakti Decor Logo"
+              className="w-[110px] h-[110px] object-contain"
+            />
             <span>
               <b className="block font-playfair font-medium text-[17px] text-g-ink leading-[1.1]">
-                Bloom &amp; Occasion
+                Shri Shakti Decor
               </b>
               <small className="block text-[8.5px] text-g-muted tracking-[.2px] mt-[2px]">
                 Flowers &nbsp;•&nbsp; Decor &nbsp;•&nbsp; Celebrations
@@ -1763,16 +2554,15 @@ function GalleryPage() {
             >
               Gallery
             </Link>
-            <Link to="/">About</Link>
-            <Link to="/">Contact</Link>
+            <Link to="/about">About</Link>
+            <Link to="/contact">Contact</Link>
           </nav>
-          <a
-            href="#"
+          <Link
+            to="/contact"
             className="inline-flex items-center gap-[7px] bg-g-800 text-white text-[11px] font-medium px-[18px] h-[34px] rounded-full shadow-[0_2px_8px_rgba(15,56,48,.2)] -mr-[3px]"
           >
             <Icon.WhatsApp className="w-[14px] h-[14px]" />
-            Get in Touch
-          </a>
+            Get a Free Quote          </Link>
         </header>
 
         <section className="relative h-[186px] rounded-[10px] overflow-hidden bg-g-900">
@@ -1997,7 +2787,7 @@ function GalleryPage() {
               <p className="text-[11px] leading-[1.6] text-g-muted">
                 {GALLERY_DESC}
               </p>
-              <div className="flex gap-[22px] items-center my-5 mb-[18px] text-[10.5px] text-g-meta pb-5 border-b border-g-line">
+              <div className="flex gap-[22px] items-center mt-5 mb-[18px] text-[10.5px] text-g-meta pb-5 border-b border-g-line">
                 <span className="inline-flex items-center gap-[7px]">
                   <Icon.HeartFill className="w-[14px] h-[14px] text-g-heart" />
                   <i className="not-italic">{activeItem.likes}</i> Likes
@@ -2010,7 +2800,7 @@ function GalleryPage() {
               <div className="text-[10.5px] font-semibold text-g-ink mb-[11px]">
                 Tags
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 mb-5">
                 {GALLERY_TAGS.map((t) => (
                   <span
                     key={t}
@@ -2021,8 +2811,11 @@ function GalleryPage() {
                 ))}
               </div>
               <a
-                href="#"
-                className="mt-auto flex items-center justify-center gap-[9px] h-[38px] rounded-lg bg-g-800 text-white text-[12.5px] font-medium mt-[25px]"
+                href={buildWhatsAppUrl(activeItem)}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setModalOpen(false)}
+                className="flex items-center justify-center gap-[9px] h-[38px] rounded-lg bg-g-800 text-white text-[12.5px] font-medium hover:bg-g-900 transition-colors"
               >
                 <Icon.WhatsApp className="w-[18px] h-[18px]" />
                 Get in Touch
@@ -2038,10 +2831,16 @@ function GalleryPage() {
 /* ============ APP ============ */
 export default function App() {
   return (
-    <Routes>
-      <Route path="/" element={<HomePage />} />
-      <Route path="/gallery" element={<GalleryPage />} />
-      <Route path="/services/:slug" element={<ServicePage />} />
-    </Routes>
+    <>
+      <ScrollToTop />
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/services" element={<ServicesPage />} />
+        <Route path="/services/:slug" element={<ServicePage />} />
+        <Route path="/gallery" element={<GalleryPage />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/contact" element={<ContactPage />} />
+      </Routes>
+    </>
   );
 }
