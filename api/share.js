@@ -23,7 +23,8 @@ export default function handler(req, res) {
   const desc = priceNum
     ? `Price: ₹${priceNum.toLocaleString("en-IN")} · Shri Shakti Decor`
     : "Shri Shakti Decor · Flowers, Decor & Special Moments";
-  const pageTitle = `${title} | Shri Shakti Decor`;
+const pageTitle = `${title} | Shri Shakti Decor`;
+const ogImage = `https://wsrv.nl/?url=${encodeURIComponent(imageUrl)}&w=800&h=420&fit=cover&output=jpg&q=70`;
 
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("Cache-Control", "public, s-maxage=3600");
@@ -35,8 +36,11 @@ export default function handler(req, res) {
 <meta property="og:type" content="website" />
 <meta property="og:title" content="${esc(pageTitle)}" />
 <meta property="og:description" content="${esc(desc)}" />
-<meta property="og:image" content="${esc(imageUrl)}" />
-<meta property="og:image:secure_url" content="${esc(imageUrl)}" />
+<meta property="og:image" content="${esc(ogImage)}" />
+<meta property="og:image:secure_url" content="${esc(ogImage)}" />
+<meta property="og:image:type" content="image/jpeg" />
+<meta property="og:image:width" content="800" />
+<meta property="og:image:height" content="420" />
 <meta property="og:url" content="${esc(origin + req.url)}" />
 <meta name="twitter:card" content="summary_large_image" />
 <script>location.replace("/gallery");</script>

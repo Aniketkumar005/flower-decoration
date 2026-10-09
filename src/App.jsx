@@ -156,6 +156,7 @@ function toShareUrl(path, title, price) {
   const params = new URLSearchParams({
     img: new URL(abs).pathname,
     title: title || "Decor Enquiry",
+    v: "2",
   });
   if (price != null) params.set("price", String(price));
   return `${origin}/api/share?${params.toString()}`;
