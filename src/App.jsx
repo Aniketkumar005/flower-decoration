@@ -148,6 +148,19 @@ function toAbsoluteUrl(path) {
   }
 }
 
+/* Link to a share page (api/share) that carries og:image so WhatsApp shows the picture */
+function toShareUrl(path, title, price) {
+  const abs = toAbsoluteUrl(path);
+  if (!abs) return "";
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const params = new URLSearchParams({
+    img: new URL(abs).pathname,
+    title: title || "Decor Enquiry",
+  });
+  if (price != null) params.set("price", String(price));
+  return `${origin}/api/share?${params.toString()}`;
+}
+
 /* =================================================================
    WHATSAPP CONFIG
    ================================================================= */
@@ -158,7 +171,7 @@ function buildWhatsAppUrl(item) {
     item && item.price != null ? formatPrice(item.price) : "Price on request";
   const titleLine = (item && item.title) || "Decor Enquiry";
   const imageLine =
-    item && item.img ? `\n\n🖼️ Design image:\n${toAbsoluteUrl(item.img)}` : "";
+    item && item.img ? `\n\n🖼️ Design image:\n${toShareUrl(item.img, item.title, item.price)}` : "";
 
   const message =
     `Hi Shri Shakti Decor! 👋\n\n` +
@@ -178,7 +191,7 @@ function buildServiceWhatsAppUrl(service, item) {
     item && item.price != null ? formatPrice(item.price) : "Price on request";
   const titleLine = (service && service.title) || "Decor Enquiry";
   const imageLine =
-    item && item.url ? `\n\n🖼️ Design image:\n${toAbsoluteUrl(item.url)}` : "";
+    item && item.url ? `\n\n🖼️ Design image:\n${toShareUrl(item.url, service && service.title, item.price)}` : "";
 
   const message =
     `Hi Shri Shakti Decor! 👋\n\n` +
