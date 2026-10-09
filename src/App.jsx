@@ -14,6 +14,51 @@ function ScrollToTop() {
 }
 
 /* =================================================================
+   MOBILE MENU (hamburger + dropdown) — used by pages with custom headers
+   ================================================================= */
+function MobileMenu({ visibleClass, barClass, panelClass }) {
+  const [open, setOpen] = useState(false);
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className={`${visibleClass} flex-col gap-[5px] bg-transparent border-0 cursor-pointer p-1`}
+        aria-label="Menu"
+        aria-expanded={open}
+      >
+        <span className={`block w-6 h-[1.5px] ${barClass}`} />
+        <span className={`block w-6 h-[1.5px] ${barClass}`} />
+        <span className={`block w-6 h-[1.5px] ${barClass}`} />
+      </button>
+
+      {open && (
+        <div
+          className={`absolute top-full left-0 right-0 z-50 flex flex-col border-b border-[#f0e8e1] shadow-[0_8px_20px_rgba(0,0,0,.08)] ${panelClass}`}
+        >
+          {navLinks.map((l) => (
+            <Link
+              key={l.label}
+              to={l.href}
+              onClick={() => setOpen(false)}
+              className={`py-4 px-5 border-b border-[#f0e8e1] text-sm ${pathname === l.href ? "font-semibold" : ""
+                }`}
+            >
+              {l.label}
+            </Link>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+/* =================================================================
    AUTO-IMPORT ALL IMAGES from src/images/**
    ================================================================= */
 const allImages = import.meta.glob(
@@ -92,6 +137,17 @@ function formatPrice(n) {
   return "₹" + n.toLocaleString("en-IN");
 }
 
+/* Build a full, public, URL-safe image link (for WhatsApp link preview) */
+function toAbsoluteUrl(path) {
+  if (!path) return "";
+  try {
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    return new URL(path, origin).href;
+  } catch {
+    return path;
+  }
+}
+
 /* =================================================================
    WHATSAPP CONFIG
    ================================================================= */
@@ -102,9 +158,7 @@ function buildWhatsAppUrl(item) {
     item && item.price != null ? formatPrice(item.price) : "Price on request";
   const titleLine = (item && item.title) || "Decor Enquiry";
   const imageLine =
-    item && item.img
-      ? `\n\n🖼️ Design: ${typeof window !== "undefined" ? window.location.origin : ""}${item.img}`
-      : "";
+    item && item.img ? `\n\n🖼️ Design image:\n${toAbsoluteUrl(item.img)}` : "";
 
   const message =
     `Hi Shri Shakti Decor! 👋\n\n` +
@@ -124,9 +178,7 @@ function buildServiceWhatsAppUrl(service, item) {
     item && item.price != null ? formatPrice(item.price) : "Price on request";
   const titleLine = (service && service.title) || "Decor Enquiry";
   const imageLine =
-    item && item.url
-      ? `\n\n🖼️ Design: ${typeof window !== "undefined" ? window.location.origin : ""}${item.url}`
-      : "";
+    item && item.url ? `\n\n🖼️ Design image:\n${toAbsoluteUrl(item.url)}` : "";
 
   const message =
     `Hi Shri Shakti Decor! 👋\n\n` +
@@ -949,7 +1001,7 @@ function Footer() {
               <li className="text-[9px] mb-[7px]" style={{ color: "#e6ddd2" }}>
                 ✉ sumitpasi944@gmail.com              </li>
               <li className="text-[9px] mb-[7px]" style={{ color: "#e6ddd2" }}>
-                ⌖ Shiv Chowk Kanker Khere,
+                ⌖ Shiv Chowk Kanker Khera,
                 <br />
                 &nbsp;&nbsp;&nbsp;Meerut Cantt
               </li>
@@ -1068,9 +1120,8 @@ function TestimonialsCarousel() {
             key={i}
             onClick={() => scrollToPage(i)}
             aria-label={`Go to testimonial page ${i + 1}`}
-            className={`cursor-pointer bg-transparent border-0 text-[10px] tracking-[4px] ${
-              i === activeDot ? "text-b-green font-bold" : "text-[#d8cdc4]"
-            }`}
+            className={`cursor-pointer bg-transparent border-0 text-[10px] tracking-[4px] ${i === activeDot ? "text-b-green font-bold" : "text-[#d8cdc4]"
+              }`}
           >
             ●
           </button>
@@ -1273,17 +1324,15 @@ function EnquiryForm({ variant = "home" }) {
               ? "Tell us about your event, venue, guest count..."
               : "Tell us about your event..."
           }
-          className={`${inputBase} ${
-            isContact ? "h-[120px] resize-none" : "h-[48px] resize-none"
-          }`}
+          className={`${inputBase} ${isContact ? "h-[120px] resize-none" : "h-[48px] resize-none"
+            }`}
         />
       </label>
 
       {status === "error" && (
         <div
-          className={`col-span-2 text-[10px] p-2 rounded ${
-            isContact ? "text-[11px]" : "text-[9px]"
-          }`}
+          className={`col-span-2 text-[10px] p-2 rounded ${isContact ? "text-[11px]" : "text-[9px]"
+            }`}
           style={{
             background: "#fdecea",
             color: "#c0392b",
@@ -1407,9 +1456,9 @@ function HomePage() {
                       cover
                         ? { backgroundImage: `url(${cover})` }
                         : {
-                            background:
-                              "linear-gradient(135deg, #c9a58f 0%, #e8d9cc 45%, #8a9a7e 130%)",
-                          }
+                          background:
+                            "linear-gradient(135deg, #c9a58f 0%, #e8d9cc 45%, #8a9a7e 130%)",
+                        }
                     }
                   />
                   <span className="absolute left-[14px] top-[80px] w-[34px] h-[34px] rounded-full bg-white grid place-items-center text-b-rose shadow-[0_2px_6px_#0001] text-[14px]">
@@ -1633,9 +1682,9 @@ function ServicesPage() {
                       cover
                         ? { backgroundImage: `url(${cover})` }
                         : {
-                            background:
-                              "linear-gradient(135deg, #c9a58f 0%, #e8d9cc 45%, #8a9a7e 130%)",
-                          }
+                          background:
+                            "linear-gradient(135deg, #c9a58f 0%, #e8d9cc 45%, #8a9a7e 130%)",
+                        }
                     }
                   />
                   <span className="absolute left-[18px] top-[138px] w-[42px] h-[42px] rounded-full bg-white grid place-items-center text-b-rose shadow-[0_3px_8px_#0002] text-[18px]">
@@ -1858,7 +1907,7 @@ function ContactPage() {
                     Address
                   </div>
                   <p className="text-[13px] font-medium leading-[1.5]">
-                    Shiv Chowk Kanker Khere,
+                    Shiv Chowk Kanker Khera,
                     <br />
                     Meerut Cantt
                   </p>
@@ -2015,6 +2064,12 @@ function ServicePage() {
           >
             ▣ Get a Quote →
           </Link>
+
+          <MobileMenu
+            visibleClass="flex md:hidden"
+            barClass="bg-sp-gdark"
+            panelClass="bg-sp-bg"
+          />
         </div>
       </header>
 
@@ -2559,10 +2614,17 @@ function GalleryPage() {
           </nav>
           <Link
             to="/contact"
-            className="inline-flex items-center gap-[7px] bg-g-800 text-white text-[11px] font-medium px-[18px] h-[34px] rounded-full shadow-[0_2px_8px_rgba(15,56,48,.2)] -mr-[3px]"
+            className="max-[860px]:hidden inline-flex items-center gap-[7px] bg-g-800 text-white text-[11px] font-medium px-[18px] h-[34px] rounded-full shadow-[0_2px_8px_rgba(15,56,48,.2)] -mr-[3px]"
           >
             <Icon.WhatsApp className="w-[14px] h-[14px]" />
-            Get a Free Quote          </Link>
+            Get a Free Quote
+          </Link>
+
+          <MobileMenu
+            visibleClass="flex min-[861px]:hidden"
+            barClass="bg-g-800"
+            panelClass="bg-g-surface"
+          />
         </header>
 
         <section className="relative h-[186px] rounded-[10px] overflow-hidden bg-g-900">
