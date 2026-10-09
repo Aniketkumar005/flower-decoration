@@ -1,22 +1,5 @@
 export default function handler(req, res) {
-  const q = req.query;
-  const name = q.name ? String(q.name).replace(/[^\w.\-]/g, "") : "";
-  const img = name ? `/assets/${name}` : q.img || "";
-  const titles = {
-    wedding: "Wedding Decoration",
-    engagement: "Engagement",
-    birthday: "Birthday Party",
-    baby: "Baby Shower",
-    haldi: "Haldi & Mehndi",
-    anniversary: "Anniversary",
-    corporate: "Corporate Events",
-    special: "Special Occasions",
-    festival: "Festival",
-  };
-  const title =
-    q.title || titles[name.split("_")[0].toLowerCase()] || "Decor Enquiry";
-  const priceMatch = name.match(/_(\d+)-/);
-  const price = q.price || (priceMatch ? priceMatch[1] : "");
+  const { img = "", title = "Decor Enquiry", price = "" } = req.query;
   const origin = `https://${req.headers.host}`;
 
   let imageUrl;
